@@ -32,7 +32,7 @@ namespace ParserFB
             {
 
                 var time = 10;
-                var x = _driver.Navigate();
+                var navigation = _driver.Navigate();
                 sw.Stop();
                 Console.WriteLine("czas= " + sw.ElapsedMilliseconds);
 
@@ -95,6 +95,8 @@ namespace ParserFB
                 //Console.WriteLine(time);
                 try
                 {
+                    Console.WriteLine(time);
+
                     _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(time);
                     var upcomingEventsIsLoaded = _driver.FindElement(By.XPath(" //*[@id='upcoming_events_card']/div/div[2]")).Displayed;
 
@@ -112,7 +114,7 @@ namespace ParserFB
                                 var trySource = _driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[{iterator}]"));
                                 if (iterator % 2 == 0)
                                 {
-                                    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(150);
+                                    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(200);
                                 }
 
                                 _driver.ExecuteScript("arguments[0].scrollIntoView(true);", trySource);
@@ -141,7 +143,7 @@ namespace ParserFB
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex);
+                            //Console.WriteLine(ex);
 
                         }
 
@@ -150,7 +152,7 @@ namespace ParserFB
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    //Console.WriteLine(ex);
 
                     time += 1;
                 }
@@ -193,6 +195,8 @@ namespace ParserFB
                 JObject jsonClubs= new JObject();
 
                 jsonClubs[$"Club{path}"] = JToken.FromObject(objects);
+                File.WriteAllText($@"\Users\JANEK\Desktop\Strona\helloworld{path}Lista.txt", jsonClubs.ToString());
+
                 lista.Add(jsonClubs);
                 sw.Stop();
                 Console.WriteLine("ParsowanieDanychCzas= " + sw.ElapsedMilliseconds);
