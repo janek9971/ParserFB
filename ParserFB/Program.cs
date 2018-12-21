@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-namespace ConsoleApp1
+namespace ParserFB
 {
     static class Program
     {
