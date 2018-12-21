@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using System;
@@ -22,17 +22,11 @@ namespace ParserFB
             chromeOptions.AddArguments("--proxy-server='direct://'");
             chromeOptions.AddArguments("--proxy-bypass-list=*");
             chromeOptions.AddArgument("blink-settings=imagesEnabled=false");
-            //var path = @"C:\Users\JANEK\AppData\Local\Google\Chrome\User Data\Default\Extensions\cjpalhdlnbpafiamejdnhcphjbkeiagm\1.17.4_0";
-            //chromeOptions.AddArgument($"load-extension={path}");
-
             chromeOptions.AddArgument("--ignore-certificate-errors");
-            //chromeOptions.AddArgument("--disable-popup-blocking");
             chromeOptions.AddArgument("--incognito");
-            //chromeOptions.AddArgument("--disable-gl-drawing-for-tests");
-            //chromeOptions.AddArgument("--disable-low-res-tiling");
-            //chromeOptions.AddArgument("--enable-tcp-fastopen");
+
             List<string> lista = new List<string>();
-            JObject jsonAll = new JObject();
+            List<Newtonsoft.Json.Linq.JToken> listJsons = new List<Newtonsoft.Json.Linq.JToken>();
 
             using (var _driver = new ChromeDriver(chromeOptions))
             {
@@ -44,15 +38,17 @@ namespace ParserFB
 
                 _driver.Navigate().GoToUrl("https://www.facebook.com/pg/klubhydrozagadka/events/");
 
-                ParseWeb(_driver, "hydro", ref lista,ref jsonAll);
+                ParseWeb(_driver, "Hydro", ref listJsons);
                 try
                 {
-                    //_driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(time);
+                    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(time);
 
-                    //_driver.Navigate().GoToUrl("https://www.facebook.com/pg/klubremont/events/");
-                    //ParseWeb(_driver, "remont", ref lista);
-                    //_driver.Navigate().GoToUrl("  https://www.facebook.com/pg/klub.stodola/events/");
-                    //ParseWeb(_driver, "stodola", ref lista);
+                    _driver.Navigate().GoToUrl("https://www.facebook.com/pg/klubremont/events/");
+                    ParseWeb(_driver, "Remont", ref listJsons);
+
+                    _driver.Navigate().GoToUrl("  https://www.facebook.com/pg/klub.stodola/events/");
+                    ParseWeb(_driver, "Stodoła", ref listJsons);
+
 
 
                     _driver.Close();
@@ -65,67 +61,12 @@ namespace ParserFB
 
 
             }
-            Console.WriteLine(jsonAll);
-            var clubData = new StringBuilder();
-            var clubDataList = new List<string>();
-            var clubs = new List<string>();
-            JObject rss= new JObject();
-            Console.WriteLine(lista.Count);
-            int i = 0;
-            int z = 0;
-            var objects = new List<Item>();
-            var text=default(string);
-            foreach (var inList in lista[0].Split('\n'))
-            {
-                
-                if (i==0 || i==1)
-                {
-                    i++;
-                    continue;
-                }
-
-               
-                if (Int32.TryParse(inList, out z))
-                {
-                    if (clubData.Length > 0)
-                    {
-                        objects.Add(new Item { Header = clubDataList[0], Informations = clubDataList[1], ClubName = clubDataList[2], Localization = clubDataList[3] });
-                        clubs.Add(clubData.ToString());
-                        clubData.Clear();
-                        clubDataList.Clear();
-                    }
-                    continue;
-                }
-                text = inList.Replace("\r\n", "").Replace("\r", "").Replace("\n", "");
-         
-                clubData.Append(text);
-                clubDataList.Add(text);
-                Console.WriteLine(text);
-                i++;
-            }
-            foreach(var club in clubs)
-            {
-               Console.WriteLine(club);
-            }
-            foreach (var club in objects)
-            {
-                Console.WriteLine(club);
-            }
-            JObject json = new JObject();
-
-            json["Clubs"] = JToken.FromObject(objects);
-            Console.WriteLine(json.ToString());
+            Console.WriteLine(listJsons);
+          
             Console.ReadLine();
             Console.ReadLine();
         }
-        class Item
-        {
-            public string Header { get; set; }
-            public string Informations { get; set; }
-            public string ClubName { get; set; }
-            public string Localization { get; set; }
-
-        }
+       
         class ItemClub
         {
             public string Date { get; set; }
@@ -140,7 +81,7 @@ namespace ParserFB
             value.Length = 0;
             value.Capacity = 0;
         }
-        private static void ParseWeb(ChromeDriver _driver, string path, ref List<string> lista, ref JObject json)
+        private static void ParseWeb(ChromeDriver _driver, string path, ref List<Newtonsoft.Json.Linq.JToken> lista)
         {
      
             Console.WriteLine(path);
@@ -161,22 +102,19 @@ namespace ParserFB
                     {
 
                         var isDivExist = true;
-                        var result = default(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement>);
-                        //StringBuilder strRes = new StringBuilder();
+                        //var result = default(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement>);
                         var iterator = 2;
 
                         try
                         {
-                            while (isDivExist)
+                                while (isDivExist)
                             {
                                 var trySource = _driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[{iterator}]"));
-                                //strRes.Append(trySource.Text);
                                 if (iterator % 2 == 0)
                                 {
-                                    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(50);
+                                    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(150);
                                 }
 
-                                //Console.WriteLine(trySource.Text);
                                 _driver.ExecuteScript("arguments[0].scrollIntoView(true);", trySource);
 
                                 iterator++;
@@ -192,28 +130,13 @@ namespace ParserFB
                                 Console.WriteLine("lista=" + xex);
                             }
                             //Console.WriteLine("error= "+errorIterate + "iterator= " + iterator);
-                            if ((errorIterate > 4 || list.Count > 4) && list[list.Count - 1] == iterator)
+                            if ((errorIterate >= 3 || list.Count > 3) && list[list.Count - 1] == iterator && list[list.Count - 2] == iterator)
                             {
                                 divCount = iterator;
-                                Console.WriteLine(_driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[7]/table/tbody/tr/td[2]/div/div[1]")).Text);
-                                Console.WriteLine(_driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[5]/table/tbody/tr/td[1]/span")).Text);
-                                Console.WriteLine(_driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[42]/table/tbody/tr/td[3]/div/div[1]")).Text);
-                               var info= _driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[7]/table/tbody/tr/td[2]/div/div[2]")).Text;
-
-                                //Console.WriteLine(_driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[7]/table/tbody/tr/td[2]/div/div[2]/text()")));
-                                var dateEvents =_driver.FindElement(By.XPath($"//*[@id='upcoming_events_card']/div/div[7]/table/tbody/tr/td[2]/div/div[2]/span[1]")).Text;
-                                Console.WriteLine(dateEvents);
-                                var subStrTrimmedDateEvent = info.Replace(dateEvents, "");
-                                var guestss = subStrTrimmedDateEvent.Substring(subStrTrimmedDateEvent.IndexOfAny("0123456789".ToCharArray()));
-
-                                Console.WriteLine(guestss);
-                            
-
-                                Console.WriteLine();
-
-
-                                result = _driver.FindElements(By.XPath($"//*[@id='upcoming_events_card']/div/div"));
+                                //result = _driver.FindElements(By.XPath($"//*[@id='upcoming_events_card']/div/div"));
                                 isDivExist = false;
+                                break;
+
                             }
                         }
                         catch (Exception ex)
@@ -221,31 +144,20 @@ namespace ParserFB
                             Console.WriteLine(ex);
 
                         }
-                       
 
-                        StringBuilder strRes = new StringBuilder();
-                        foreach (var div in result)
-                        {
-                            strRes.Append(div.Text);
-                        }
-
-                        lista.Add(strRes.ToString());
-                        //string output = JsonConvert.SerializeObject(strRes);
-                        File.WriteAllText($@"\Users\JANEK\Desktop\Strona\helloworld{path}New.txt", strRes.ToString());
-                        //File.WriteAllText($@"\Users\JANEK\Desktop\Strona\helloworld{path}Lista.txt", clubData.ToString());
-
-                        //File.WriteAllText($@"\Users\JANEK\Desktop\Strona\helloworld{path}blabla.txt", xd.ToString());
-
-                        break;
                     }
                     
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
+
                     time += 1;
                 }
 
             }
+            var sw = new Stopwatch();
+            sw.Start();
             var objects = new List<ItemClub>();
             var dateEvent = default(string);
             var titleEvent = default(string);
@@ -253,7 +165,6 @@ namespace ParserFB
             var guestsEvent = default(string);
             var localizationEvent = default(string);
 
-            //objects.Add(new Item { Header = clubDataList[0], Informations = clubDataList[1], ClubName = clubDataList[2], Localization = clubDataList[3] });
             if (divCount > 0)
             {
                 for (int i = 0; i < divCount; i++)
@@ -279,24 +190,15 @@ namespace ParserFB
 
 
                 }
-                //json = new JObject();
+                JObject jsonClubs= new JObject();
 
-                json["Clubs"] = JToken.FromObject(objects);
+                jsonClubs[$"Club{path}"] = JToken.FromObject(objects);
+                lista.Add(jsonClubs);
+                sw.Stop();
+                Console.WriteLine("ParsowanieDanychCzas= " + sw.ElapsedMilliseconds);
             }
         }
     }
-    //public static class WebDriverExtensions
-    //{
-    //    public static IWebElement FindElement(this IWebDriver driver, By by, int timeoutInSeconds)
-    //    {
-    //        if (timeoutInSeconds > 0)
-    //        {
-    //            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeoutInSeconds));
-    //            return wait.Until(drv => drv.FindElement(by));
-    //        }
-    //        return driver.FindElement(by);
-    //    }
-    //}
 
 
 }
